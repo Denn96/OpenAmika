@@ -157,7 +157,8 @@ Stop OpenAmika if she is running (Stop_OpenAmika.bat or Ctrl + C in her console 
 
 ----------------------------------------------------------------------------------------
 
-Why Each settings.json Change Matters
+Why Each settings.json Change Matters:
+
 •	"speech_device": "cpu" — Moves her microphone speech-to-text engine (SenseVoice) off your graphics card onto your CPU. When left on "cuda:0", speaking while she is thinking creates sudden 1.5–2 GB VRAM spikes that can crash the language model. On "cpu", she hears you immediately with zero VRAM cost.
 
 •	"embedder": { "device": "cpu" } — Moves her long-term memory search model (BAAI/bge-m3) to your CPU, saving another ~1.5 GB of VRAM.
