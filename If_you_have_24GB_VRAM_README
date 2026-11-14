@@ -1,0 +1,171 @@
+NOTE: This method was not possible if it was not for Zeek/Mekahime his research about the LLM’S in the readme 
+And Gemini high Argons thinking
+-------------------------------------------------
+I experimented together with Gemini with different Ollama local language models and finally found the fitting one after days and hours with a lot of failings.
+All with the help of Gemini Argon and Mekahimes Language model section readme as guideline.
+------------------------------------------------------------- 
+This readme is generated and edited with the findings to get it worked on a 24GB GPU.
+It is all verified manually by me and if it is published, also by Zeekk/Mekahime itself.
+
+I added sample pictures in the document to see how to do it.
+-------------------- 
+OpenAmika: Fully Local Setup Guide (24 GB NVIDIA GPUs)
+By default, running OpenAmika 100% locally (Brain + Voice + Ears + Memory + Camera Eyes) easily exceeds 26–29 GB of VRAM, causing a 24 GB card (like an RTX 3090 or RTX 4090) to spill memory into slow system RAM, spike to 94%+ GPU utilization, and freeze mid-conversation.
+This guide shows you how to run OpenAmika 100% locally, smoothly, and in-character with her voice and camera vision enabled on a 24 GB GPU
+Why This Setup Works (The VRAM Budget)
+Instead of letting every single service fight for your GPU memory at the same time, this setup puts the light background tasks on your CPU and keeps only the heavy real-time AI tasks on your NVIDIA GPU:
+•	Amika's Ears (speech_device) & Memory (embedder): Moved to your CPU 
+(0 GB VRAM). Modern CPUs handle voice recognition and text embeddings effortlessly without causing sudden 2 GB VRAM spikes on your graphics card.
+
+•	Amika's Voice (tts — GPT-SoVITS): Kept on your GPU (~2.2 GB VRAM) for fast, real-time voice generation.
+
+•	Amika's Camera Eyes (smolvlm2-500m): Kept on your GPU (~1.2 GB VRAM), tuned to take 1 snapshot every ~3 seconds so it never interrupts her while she is speaking.
+
+•	Amika's Brain (gemma4:26b-a4b-it-qat): Kept on your GPU (~16 GB VRAM). Because Gemma 4 26B is a Mixture-of-Experts (MoE) model with 26 billion parameters total but only ~4 billion active per word, she keeps her full personality and bilingual prompt formatting while replying at the speed of a tiny 4B model.
+Total GPU VRAM Used: ~20.5 to 23.5 GB / 24.0 GB (leaving a safe buffer for Windows and your browser).
+STEP 1 — Stop NVIDIA "Shared GPU Memory" Lockups
+When a game or AI model gets close to 24 GB of VRAM, NVIDIA's default driver silently spills the extra gigabytes into Shared GPU Memory (your PC's normal system RAM over the PCIe bus). For a local language model, even 1 GB of Shared GPU Memory spillover slows token generation by 90% and pins your GPU at 92%–99% utilization until OpenAmika times out.
+1.	Right-click an empty spot on your Windows desktop and open NVIDIA Control Panel.
+2.	In the left sidebar, click Manage 3D Settings.
+3.	Under the Global Settings tab, scroll down to CUDA - Sysmem Fallback Policy.
+4.	Change it from Driver Default to Prefer No Sysmem Fallback.
+5.	Click Apply in the bottom-right corner.
+Why this is required: Setting Prefer No Sysmem Fallback forbids the NVIDIA driver from dumping model weights into slow Shared GPU Memory. On a 24 GB card, it keeps everything strictly inside fast GDDR6X VRAM; on a 16 GB card, it forces Ollama to cleanly split leftover layers onto your CPU instead of stalling the graphics driver.
+
+
+
+
+STEP 2 — Set Windows Environment Variables for Ollama
+By default, Ollama reserves memory for 4 parallel conversations at once in uncompressed 16-bit precision, wasting ~4.5 GB of VRAM on empty memory slots. Adding these five User Environment Variables cuts Ollama's memory overhead in half.
+1.	Press the Windows key, type environment variables, and click Edit environment variables for your account (or open System Properties -> Advanced -> Environment Variables...).
+2.	Under the top section (User variables for <Your Name>), click New... and add each of the following five variables:
+Variable Name	Value	Why You Need It
+OLLAMA_FLASH_ATTENTION	1	Enables Flash Attention, which speeds up long prompt processing and lowers VRAM spikes while Amika reads her character sheet.
+OLLAMA_KEEP_ALIVE	-1	Keeps the language model permanently loaded in VRAM (-1 = forever). Without this, Ollama unloads her brain after 5 minutes of silence, causing a 20-second freeze the next time you speak.
+OLLAMA_KV_CACHE_TYPE	q4_0	Compresses her 16k conversation memory cache from 16-bit (f16) to 4-bit (q4_0). This saves ~2.5 GB of VRAM with near-zero impact on her memory accuracy.
+OLLAMA_MAX_LOADED_MODELS	1	Forces Ollama to hold only 1 language model in VRAM at a time. If you test a different model, Ollama immediately unloads the old one first.
+OLLAMA_NUM_PARALLEL	1	Stops Ollama from reserving 4 parallel 16k context buffers in VRAM. Setting this to 1 saves ~3 GB of VRAM immediately.
+3.	Click OK to close the windows.
+4.	Restart Ollama so it reads the new variables: right-click the Ollama llama icon in your bottom-right Windows taskbar tray, click Quit Ollama, and launch Ollama again from the Start menu.
+ 
+STEP 3 — Download the 16 GB QAT Build of Gemma 4 26B
+Models smaller than 27B normally break Amika's reply format or repeat lines from her system prompt. Gemma 4 26B MoE is the one exception tested by her creator that holds her full character.
+However, the default gemma4:26b tag pulls a heavier ~19 GB file. Instead, pull Google's official QAT (Quantization-Aware Trained) build, which shrinks the download to 16 GB while preserving full 4-bit precision:
+1.	Open Command Prompt (cmd) or PowerShell and run:
+2.	ollama pull gemma4:26b-a4b-it-qat
+
+3.	(Optional) If you previously downloaded larger models you no longer use, remove them so Ollama never loads them by mistake:
+4.	ollama list
+5.	ollama rm <old_model_name>
+
+-----------------------------------------------------------------------
+
+STEP 4 — Configure settings.json
+Stop OpenAmika if she is running (Stop_OpenAmika.bat or Ctrl + C in her console window), open settings.json from Mekahime in your OpenAmika folder using Notepad, and update it to match the configuration below.
+(Note: Keep your existing "chat_port" number—usually 53000 or 53010—so your browser bookmark stays the same).
+
+
+{
+  "_readme": "The template of settings.json (git-ignored). scripts/setup_windows.ps1 (scripts/setup_core.py) creates settings.json from it, pointed at the Python environments it makes in envs\\ (venvs: envs\\<name>\\Scripts\\python.exe), with speech_device and the embedder on the CPU when there is no NVIDIA GPU and vision on when the GPU has 16 GB or more; it never changes an existing settings.json. Interpreter paths may be relative to this folder; absolute paths to other environments (or a conda environment's envs\\<name>\\python.exe) work too. brain = Python 3.11 + brain/requirements.txt; speech = Python 3.11 + CUDA torch + speech/requirements.txt (also runs the Discord/Telegram service); embedder = its own environment with CUDA torch + brain/requirements-embedder.txt (BAAI/bge-m3, about 2.3 GB in the Hugging Face cache; the setup downloads it). The vision block gives her eyes: a small local VLM (vision/requirements.txt) that describes your camera feed; enabled:false runs without it.",
+  "brain_python": "envs\\brain\\Scripts\\python.exe",
+  "speech_python": "envs\\speech\\Scripts\\python.exe",
+  "brain_port": 5202,
+  "chat_port": 53010,
+  "messengers_port": 5215,
+  "local_model_url": "http://127.0.0.1:11434/v1/chat/completions",
+  "speech_device": "cpu",
+  "tts_url": "http://127.0.0.1:8002",
+  "tts_character": "MekaHime_Amika",
+  "embedder": {
+    "python": "envs\\embed\\Scripts\\python.exe",
+    "port": 8011,
+    "model": "BAAI/bge-m3",
+    "tag": "bge-m3-d768",
+    "dims": 768,
+    "dtype": "fp16",
+    "device": "cpu",
+    "load_timeout_s": 600
+  },
+  "vision": {
+    "enabled": true,
+    "_models": "qwen3-vl-2b (~4.3 GB VRAM, zh/en/ja, default) | qwen3-vl-4b (~9 GB, sharper but slow on some stacks) | qwen2.5-vl-3b (~7.6 GB) | smolvlm2-2.2b (~5 GB, EN) | smolvlm2-500m (~1.2 GB, tiny EN)",
+    "python": "envs\\vision\\Scripts\\python.exe",
+    "port": 8014,
+    "model": "smolvlm2-500m",
+    "max_tokens": 45,
+    "max_dps": 0.3,
+    "device": "cuda",
+    "load_timeout_s": 900
+  },
+  "services": {
+    "_readme": "Optional. Programs the launcher starts in its one console (and stops with Ctrl+C). Paths relative to this folder. health = URL answering when up, or port = TCP port opening when up; after = start once that service is up. A service already running is used as is. The smart-home services (mqtt, zigbee2mqtt) start only after the IoT safety statement (docs/IOT_DISCLAIMER.md) was accepted on the Tools page.",
+    "tts": {
+      "enabled": true,
+      "_readme": "The OpenAmika voice server (vendor/tts-engine, a MekaHime build of GPT-SoVITS) with Amika's voice. scripts/setup_tts.py installs both (with her Live2D model); until then the launcher's TTS row says to run it and she answers in text only. Keep --character in step with tts_character.",
+      "command": [
+        "vendor\\tts-engine\\.venv\\Scripts\\python.exe",
+        "main.py",
+        "--port",
+        "8002",
+        "--host",
+        "127.0.0.1",
+        "--character",
+        "MekaHime_Amika"
+      ],
+      "cwd": "vendor\\tts-engine",
+      "health": "http://127.0.0.1:8002/ping",
+      "timeout_s": 240
+    },
+    "mqtt": {
+      "enabled": false,
+      "command": [
+        "C:\\Program Files\\mosquitto\\mosquitto.exe",
+        "-c",
+        "mosquitto.conf"
+      ],
+      "cwd": "IoT",
+      "port": 1883,
+      "timeout_s": 15
+    },
+    "zigbee2mqtt": {
+      "enabled": false,
+      "command": [
+        "node",
+        "index.js"
+      ],
+      "cwd": "IoT\\zigbee2mqtt",
+      "env": {
+        "ZIGBEE2MQTT_DATA": "IoT\\data"
+      },
+      "health": "http://127.0.0.1:8080/",
+      "timeout_s": 90,
+      "after": "mqtt"
+    }
+  }
+}
+
+----------------------------------------------------------------------------------------
+
+Why Each settings.json Change Matters
+•	"speech_device": "cpu" — Moves her microphone speech-to-text engine (SenseVoice) off your graphics card onto your CPU. When left on "cuda:0", speaking while she is thinking creates sudden 1.5–2 GB VRAM spikes that can crash the language model. On "cpu", she hears you immediately with zero VRAM cost.
+
+•	"embedder": { "device": "cpu" } — Moves her long-term memory search model (BAAI/bge-m3) to your CPU, saving another ~1.5 GB of VRAM.
+
+•	"vision": { "model": "smolvlm2-500m" } — Uses only ~1.2 GB of VRAM instead of the 4.3 GB required by qwen3-vl-2b, saving over 3 GB of VRAM so the 26B brain never hits the 24 GB ceiling.
+
+•	"max_tokens": 45 — Gives the camera model enough words to finish a complete sentence about what you are doing without getting cut off mid-sentence or rambling.
+
+•	"max_dps": 0.3 — Tells the camera to describe a new webcam frame once every ~3.3 seconds (0.3 descriptions per second) instead of every 1.0 second. Polling the camera every single second constantly interrupts the GPU while she is trying to generate her reply.
+STEP 5 — Starting Her Up & Selecting the Model
+1.	Double-click Start_OpenAmika.bat and wait until all rows in her console window turn green (ready).
+2.	In your browser (http://localhost:53000 or http://localhost:53010), open Setup -> Brain.
+3.	Click Ollama, click Detect models, select gemma4:26b-a4b-it-qat, and click Use this model.
+4.	(If you previously tested smaller 14B models that got stuck repeating lines): Still on the Setup page, scroll down to Danger zone and click Wipe memory so she starts with a clean conversation history.
+5.	Go to the Use page, click the Camera button ON first (so the vision model locks its 1.2 GB of VRAM first), click the page once so the browser enables audio, press the Power button, and talk to her!
+How to Verify Everything Is Running Properly
+Open Command Prompt (cmd) while chatting with her and run:
+ollama ps
+
+•	On a 24 GB GPU (RTX 3090 / 4090), the PROCESSOR column will show 100% GPU, and Windows Task Manager (Performance -> GPU) will show Dedicated GPU memory sitting safely around 20.5–24.5 / 24.0 GB with Shared GPU memory near 0.0 GB.
+ 
+ 
