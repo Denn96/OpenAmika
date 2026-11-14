@@ -7,7 +7,6 @@ All with the help of Gemini Argon and Mekahimes Language model section readme as
 This readme is generated and edited with the findings to get it worked on a 24GB GPU.
 It is all verified manually by me and if it is published, also by Zeekk/Mekahime itself.
 
-I added sample pictures in the document to see how to do it.
 -------------------- 
 OpenAmika: Fully Local Setup Guide (24 GB NVIDIA GPUs)
 By default, running OpenAmika 100% locally (Brain + Voice + Ears + Memory + Camera Eyes) easily exceeds 26–29 GB of VRAM, causing a 24 GB card (like an RTX 3090 or RTX 4090) to spill memory into slow system RAM, spike to 94%+ GPU utilization, and freeze mid-conversation.
@@ -23,6 +22,7 @@ Instead of letting every single service fight for your GPU memory at the same ti
 
 •	Amika's Brain (gemma4:26b-a4b-it-qat): Kept on your GPU (~16 GB VRAM). Because Gemma 4 26B is a Mixture-of-Experts (MoE) model with 26 billion parameters total but only ~4 billion active per word, she keeps her full personality and bilingual prompt formatting while replying at the speed of a tiny 4B model.
 Total GPU VRAM Used: ~20.5 to 23.5 GB / 24.0 GB (leaving a safe buffer for Windows and your browser).
+
 STEP 1 — Stop NVIDIA "Shared GPU Memory" Lockups
 When a game or AI model gets close to 24 GB of VRAM, NVIDIA's default driver silently spills the extra gigabytes into Shared GPU Memory (your PC's normal system RAM over the PCIe bus). For a local language model, even 1 GB of Shared GPU Memory spillover slows token generation by 90% and pins your GPU at 92%–99% utilization until OpenAmika times out.
 1.	Right-click an empty spot on your Windows desktop and open NVIDIA Control Panel.
@@ -169,6 +169,4 @@ How to Verify Everything Is Running Properly
 Open Command Prompt (cmd) while chatting with her and run:
 ollama ps
 
-•	On a 24 GB GPU (RTX 3090 / 4090), the PROCESSOR column will show 100% GPU, and Windows Task Manager (Performance -> GPU) will show Dedicated GPU memory sitting safely around 20.5–24.5 / 24.0 GB with Shared GPU memory near 0.0 GB.
- 
- 
+•	On a 24 GB GPU (RTX 3090 / 4090), the PROCESSOR column will show 100% GPU, and Windows Task Manager (Performance -> GPU) will show Dedicated GPU memory sitting safely around 20.5–23.5 / 24.0 GB with Shared GPU memory near 0.0 GB.
