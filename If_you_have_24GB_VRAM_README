@@ -32,7 +32,7 @@ When a game or AI model gets close to 24 GB of VRAM, NVIDIA's default driver sil
 5.	Click Apply in the bottom-right corner.
 Why this is required: Setting Prefer No Sysmem Fallback forbids the NVIDIA driver from dumping model weights into slow Shared GPU Memory. On a 24 GB card, it keeps everything strictly inside fast GDDR6X VRAM; on a 16 GB card, it forces Ollama to cleanly split leftover layers onto your CPU instead of stalling the graphics driver.
 
-
+![image alt](https://github.com/Denn96/OpenAmika/blob/58940cc0201da324396912f1597b7b7bf98060cb/Cuda%20set%20to%20No%20Sysmem%20Fallback.jpg)
 
 
 STEP 2 — Set Windows Environment Variables for Ollama
