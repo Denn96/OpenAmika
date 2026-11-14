@@ -32,8 +32,6 @@ When a game or AI model gets close to 24 GB of VRAM, NVIDIA's default driver sil
 5.	Click Apply in the bottom-right corner.
 Why this is required: Setting Prefer No Sysmem Fallback forbids the NVIDIA driver from dumping model weights into slow Shared GPU Memory. On a 24 GB card, it keeps everything strictly inside fast GDDR6X VRAM; on a 16 GB card, it forces Ollama to cleanly split leftover layers onto your CPU instead of stalling the graphics driver.
 
-![image alt](https://github.com/Denn96/OpenAmika/blob/58940cc0201da324396912f1597b7b7bf98060cb/Cuda%20set%20to%20No%20Sysmem%20Fallback.jpg)
-
 
 STEP 2 — Set Windows Environment Variables for Ollama
 By default, Ollama reserves memory for 4 parallel conversations at once in uncompressed 16-bit precision, wasting ~4.5 GB of VRAM on empty memory slots. Adding these five User Environment Variables cuts Ollama's memory overhead in half.
@@ -41,10 +39,15 @@ By default, Ollama reserves memory for 4 parallel conversations at once in uncom
 2.	Under the top section (User variables for <Your Name>), click New... and add each of the following five variables:
 Variable Name	Value	Why You Need It
 OLLAMA_FLASH_ATTENTION	1	Enables Flash Attention, which speeds up long prompt processing and lowers VRAM spikes while Amika reads her character sheet.
+
 OLLAMA_KEEP_ALIVE	-1	Keeps the language model permanently loaded in VRAM (-1 = forever). Without this, Ollama unloads her brain after 5 minutes of silence, causing a 20-second freeze the next time you speak.
+
 OLLAMA_KV_CACHE_TYPE	q4_0	Compresses her 16k conversation memory cache from 16-bit (f16) to 4-bit (q4_0). This saves ~2.5 GB of VRAM with near-zero impact on her memory accuracy.
+
 OLLAMA_MAX_LOADED_MODELS	1	Forces Ollama to hold only 1 language model in VRAM at a time. If you test a different model, Ollama immediately unloads the old one first.
+
 OLLAMA_NUM_PARALLEL	1	Stops Ollama from reserving 4 parallel 16k context buffers in VRAM. Setting this to 1 saves ~3 GB of VRAM immediately.
+
 3.	Click OK to close the windows.
 4.	Restart Ollama so it reads the new variables: right-click the Ollama llama icon in your bottom-right Windows taskbar tray, click Quit Ollama, and launch Ollama again from the Start menu.
  
