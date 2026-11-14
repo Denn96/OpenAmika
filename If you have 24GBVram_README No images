@@ -38,23 +38,31 @@ By default, Ollama reserves memory for 4 parallel conversations at once in uncom
 1.	Press the Windows key, type environment variables, and click Edit environment variables for your account (or open System Properties -> Advanced -> Environment Variables...).
 2.	Under the top section (User variables for <Your Name>), click New... and add each of the following five variables:
 Variable Name	Value	Why You Need It
-OLLAMA_FLASH_ATTENTION	1	Enables Flash Attention, which speeds up long prompt processing and lowers VRAM spikes while Amika reads her character sheet.
 
-OLLAMA_KEEP_ALIVE	-1	Keeps the language model permanently loaded in VRAM (-1 = forever). Without this, Ollama unloads her brain after 5 minutes of silence, causing a 20-second freeze the next time you speak.
+OLLAMA_FLASH_ATTENTION	1	
+(Enables Flash Attention, which speeds up long prompt processing and lowers VRAM spikes while Amika reads her character sheet.)
 
-OLLAMA_KV_CACHE_TYPE	q4_0	Compresses her 16k conversation memory cache from 16-bit (f16) to 4-bit (q4_0). This saves ~2.5 GB of VRAM with near-zero impact on her memory accuracy.
+OLLAMA_KEEP_ALIVE	-1	
+(Keeps the language model permanently loaded in VRAM (-1 = forever). Without this, Ollama unloads her brain after 5 minutes of silence, causing a 20-second freeze the next time you speak.)
 
-OLLAMA_MAX_LOADED_MODELS	1	Forces Ollama to hold only 1 language model in VRAM at a time. If you test a different model, Ollama immediately unloads the old one first.
+OLLAMA_KV_CACHE_TYPE	q4_0	
+(Compresses her 16k conversation memory cache from 16-bit (f16) to 4-bit (q4_0). This saves ~2.5 GB of VRAM with near-zero impact on her memory accuracy.)
 
-OLLAMA_NUM_PARALLEL	1	Stops Ollama from reserving 4 parallel 16k context buffers in VRAM. Setting this to 1 saves ~3 GB of VRAM immediately.
+OLLAMA_MAX_LOADED_MODELS	1	
+(Forces Ollama to hold only 1 language model in VRAM at a time. If you test a different model, Ollama immediately unloads the old one first.)
+
+OLLAMA_NUM_PARALLEL	1	
+(Stops Ollama from reserving 4 parallel 16k context buffers in VRAM. Setting this to 1 saves ~3 GB of VRAM immediately.)
 
 3.	Click OK to close the windows.
 4.	Restart Ollama so it reads the new variables: right-click the Ollama llama icon in your bottom-right Windows taskbar tray, click Quit Ollama, and launch Ollama again from the Start menu.
  
 STEP 3 — Download the 16 GB QAT Build of Gemma 4 26B
+
 Models smaller than 27B normally break Amika's reply format or repeat lines from her system prompt. Gemma 4 26B MoE is the one exception tested by her creator that holds her full character.
 However, the default gemma4:26b tag pulls a heavier ~19 GB file. Instead, pull Google's official QAT (Quantization-Aware Trained) build, which shrinks the download to 16 GB while preserving full 4-bit precision:
 1.	Open Command Prompt (cmd) or PowerShell and run:
+
 2.	ollama pull gemma4:26b-a4b-it-qat
 
 3.	(Optional) If you previously downloaded larger models you no longer use, remove them so Ollama never loads them by mistake:
@@ -65,7 +73,7 @@ However, the default gemma4:26b tag pulls a heavier ~19 GB file. Instead, pull G
 
 STEP 4 — Configure settings.json
 Stop OpenAmika if she is running (Stop_OpenAmika.bat or Ctrl + C in her console window), open settings.json from Mekahime in your OpenAmika folder using Notepad, and update it to match the configuration below.
-(Note: Keep your existing "chat_port" number—usually 53000 or 53010—so your browser bookmark stays the same).
+(Note: Keep your existing "chat_port" number—usually 53000 or 53010—so your browser bookmark stays the same)
 
 
 {
@@ -159,6 +167,7 @@ Why Each settings.json Change Matters
 •	"max_tokens": 45 — Gives the camera model enough words to finish a complete sentence about what you are doing without getting cut off mid-sentence or rambling.
 
 •	"max_dps": 0.3 — Tells the camera to describe a new webcam frame once every ~3.3 seconds (0.3 descriptions per second) instead of every 1.0 second. Polling the camera every single second constantly interrupts the GPU while she is trying to generate her reply.
+
 STEP 5 — Starting Her Up & Selecting the Model
 1.	Double-click Start_OpenAmika.bat and wait until all rows in her console window turn green (ready).
 2.	In your browser (http://localhost:53000 or http://localhost:53010), open Setup -> Brain.
